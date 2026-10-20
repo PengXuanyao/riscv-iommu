@@ -163,9 +163,10 @@ module rv_iommu_fq_handler #(
         .empty_o    ( is_empty        ),
         .usage_o    (                 ),
         .data_i     ( {trans_type_i, cause_code_i, iova_i, gpaddr_i, did_i, pv_i, pid_i, is_supervisor_i, is_guest_pf_i, is_implicit_i}),
-        .push_i     ( event_valid_i & !edge_trigger_q ),
+        // Records are discarded while the FQ is disabled or an error bit is set in fqcsr
+        .push_i     ( event_valid_i & !edge_trigger_q & fq_en_i & !error_vector ),
         .data_o     ( {trans_type, cause_code, iova, gpaddr, did, pv, pid, is_supervisor, is_guest_pf, is_implicit} ),
-        .pop_i      ( is_idle ) // W transaction has finished
+        .pop_i      ( is_idle | (!is_empty & (!fq_en_i | (state_q == ERROR)))) // W transaction has finished, or record discarded
     );
 
     // FIFO edge-triggered push control
