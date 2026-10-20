@@ -336,7 +336,13 @@ module rv_iommu_tw_sv39x4_pc #(
     //      or 
     // (ii) second-stage translation is enabled and the GPA is not MSI
     logic   init_ptw;
-    assign  init_ptw =  (iotlb_lu_miss) & 
+    // A flush may drop or remove what a walk installed. Gap the walker start request for one cycle so it walks again
+    logic   iotlb_flush_q, dir_flush_q;
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (!rst_ni) begin iotlb_flush_q <= 1'b0; dir_flush_q <= 1'b0; end
+        else begin iotlb_flush_q <= flush_vma_i | flush_gvma_i; dir_flush_q <= flush_ddtc_i | flush_pdtc_i; end
+    end
+    assign  init_ptw =  (iotlb_lu_miss) & ~iotlb_flush_q &
                         ((S1_en) | 
                          (S2_en & ~iova_is_msi));
 
@@ -794,7 +800,7 @@ module rv_iommu_tw_sv39x4_pc #(
         .req_pid_i              (process_id     ),      // process ID associated with request
 
         // from DDTC, to monitor misses
-        .init_cdw_i             (ddtc_access && ~ddtc_lu_hit ),
+        .init_cdw_i             (ddtc_access && ~ddtc_lu_hit && ~dir_flush_q),
 
         .pdtc_access_i          (pdtc_access    ),
         .pdtc_hit_i             (pdtc_lu_hit    ),
