@@ -109,7 +109,8 @@ module rv_iommu_axi4_bc (
                     end
                 end
 
-                default:;
+                // Reserved burst type: reject it so the request terminates
+                default: bound_violation_o = 1'b1;
             endcase
         end
     end
