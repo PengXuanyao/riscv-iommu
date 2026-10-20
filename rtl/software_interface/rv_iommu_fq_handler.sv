@@ -310,7 +310,7 @@ module rv_iommu_fq_handler #(
                         fq_pptr_n = ({fq_base_ppn_i, 12'b0}) | ({{riscv::PLEN-32{1'b0}}, masked_tail} << 5);
 
                         // If a fault that must be reported occurs and the FQ is full, set fq_of and signal error
-                        if (fq_tail_i == fq_head_i - 1) begin
+                        if (((fq_tail_i + 1) & ~({32{1'b1}} << (fq_size_i+1))) == fq_head_i) begin
                             fq_of_o     = 1'b1;
                             error_wen_o = 1'b1;
                             fq_ip_o     = fq_ie_i;
